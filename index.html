@@ -3,66 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat Tool</title>
+    <title>Gemma AI Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .chat-box { height: calc(100vh - 180px); }
-        .user-bubble { background: #2563eb; color: white; border-radius: 18px 18px 2px 18px; }
-        .bot-bubble { background: #f3f4f6; color: #1f2937; border-radius: 18px 18px 18px 2px; }
+        .chat-window { height: calc(100vh - 180px); }
+        .user-msg { background: #4F46E5; color: white; border-radius: 20px 20px 4px 20px; }
+        .bot-msg { background: #F3F4F6; color: #1F2937; border-radius: 20px 20px 20px 4px; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-slate-50">
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
 
-    <div class="max-w-3xl mx-auto bg-white shadow-2xl h-screen flex flex-col">
-        <div class="p-5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-tight">GPT-4o Assistant</h1>
-            <span class="text-xs bg-blue-500 px-2 py-1 rounded">Live</span>
+    <div class="w-full max-w-2xl bg-white shadow-2xl rounded-2xl overflow-hidden flex flex-col h-[90vh]">
+        <div class="bg-indigo-600 p-5 text-white flex items-center gap-3">
+            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold">G</div>
+            <div>
+                <h1 class="font-bold text-lg">Gemma-3 AI</h1>
+                <p class="text-xs text-indigo-100 flex items-center gap-1">
+                    <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online
+                </p>
+            </div>
         </div>
 
-        <div id="chatBox" class="chat-box overflow-y-auto p-6 space-y-4 flex-1">
+        <div id="chatDisplay" class="chat-window overflow-y-auto p-6 space-y-4 flex-1 bg-gray-50">
             <div class="flex justify-start">
-                <div class="bot-bubble p-4 max-w-[85%] shadow-sm">
-                    Hello! I'm powered by GPT-4o. How can I assist you today?
+                <div class="bot-msg p-4 max-w-[85%] shadow-sm border border-gray-100">
+                    হ্যালো! আমি Gemma-3 AI। আমি আপনাকে কীভাবে সাহায্য করতে পারি?
                 </div>
             </div>
         </div>
 
-        <div id="loader" class="hidden px-6 py-2 text-sm text-blue-600 font-medium animate-pulse">
-            AI is writing...
+        <div id="loader" class="hidden px-6 py-2 text-xs text-gray-500 italic">
+            Gemma is thinking...
         </div>
 
-        <div class="p-4 border-t bg-gray-50">
-            <div class="flex gap-3 bg-white p-2 rounded-full border shadow-inner">
+        <div class="p-4 bg-white border-t border-gray-100">
+            <div class="flex gap-2 items-center bg-gray-100 rounded-full px-4 py-2">
                 <input type="text" id="userInput" 
-                       class="flex-1 bg-transparent px-4 py-2 focus:outline-none" 
-                       placeholder="Type your message...">
-                <button onclick="sendMessage()" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full transition-all font-semibold">
-                    Send
+                       class="flex-1 bg-transparent border-none focus:outline-none text-gray-700 p-2" 
+                       placeholder="আপনার প্রশ্নটি এখানে লিখুন...">
+                <button onclick="handleSend()" 
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // আপনার দেওয়া API Key এবং Model
+        // আপনার দেওয়া API Key এবং Model তথ্য
         const API_KEY = "1912dffb688a459d4383d1798deb3175";
-        const API_URL = "https://api.bytez.com/models/v2/openai/gpt-4o";
+        const API_URL = "https://api.bytez.com/models/v2/google/gemma-3-1b-it";
 
-        async function sendMessage() {
+        async function handleSend() {
             const inputField = document.getElementById('userInput');
-            const chatBox = document.getElementById('chatBox');
+            const chatDisplay = document.getElementById('chatDisplay');
             const loader = document.getElementById('loader');
-            const message = inputField.value.trim();
+            const userText = inputField.value.trim();
 
-            if (!message) return;
+            if (!userText) return;
 
-            // ইউজারের মেসেজ যোগ করা
-            addMessage('user', message);
+            // ১. ইউজারের মেসেজ স্ক্রিনে দেখানো
+            renderMessage('user', userText);
             inputField.value = '';
             loader.classList.remove('hidden');
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
 
             try {
+                // ২. Bytez API কল করা (আপনার দেওয়া sdk.model.run এর লজিক অনুযায়ী)
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
@@ -70,45 +81,45 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        messages: [{ role: "user", content: message }]
+                        messages: [{ "role": "user", "content": userText }]
                     })
                 });
 
                 const data = await response.json();
                 
-                // API-র রেসপন্স দেখানো
-                const botReply = data.output || "Error: No response from model.";
-                addMessage('bot', botReply);
+                // ৩. AI এর উত্তর দেখানো
+                // Bytez SDK অনুযায়ী আউটপুট সাধারণত 'output' ফিল্ডে থাকে
+                const aiResponse = data.output || "দুঃখিত, আমি এই মুহূর্তে উত্তর দিতে পারছি না।";
+                renderMessage('bot', aiResponse);
 
-            } catch (err) {
-                addMessage('bot', "Connection error. Please check your API key.");
-                console.error(err);
+            } catch (error) {
+                renderMessage('bot', "Error: সার্ভারের সাথে সংযোগ করা সম্ভব হচ্ছে না।");
+                console.error("API Error:", error);
             } finally {
                 loader.classList.add('hidden');
-                chatBox.scrollTop = chatBox.scrollHeight;
+                chatDisplay.scrollTop = chatDisplay.scrollHeight;
             }
         }
 
-        function addMessage(role, text) {
-            const chatBox = document.getElementById('chatBox');
-            const div = document.createElement('div');
-            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+        function renderMessage(role, text) {
+            const chatDisplay = document.getElementById('chatDisplay');
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
             
-            div.innerHTML = `
-                <div class="p-4 max-w-[85%] shadow-sm ${role === 'user' ? 'user-bubble' : 'bot-bubble'}">
+            wrapper.innerHTML = `
+                <div class="p-4 max-w-[85%] shadow-sm ${role === 'user' ? 'user-msg' : 'bot-msg'}">
                     ${text}
                 </div>
             `;
             
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            chatDisplay.appendChild(wrapper);
         }
 
-        // এন্টার চাপলে সেন্ড হবে
+        // এন্টার কি চাপলে মেসেজ পাঠানোর শর্টকাট
         document.getElementById('userInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter') handleSend();
         });
     </script>
 </body>
-  </html>
-  
+</html>
+
